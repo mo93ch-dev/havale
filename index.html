@@ -1,0 +1,253 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ثبت درخواست حواله</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body {font-family:'Vazirmatn',Tahoma,sans-serif;background:#1c1c1c;margin:0;padding:0;}
+.container{max-width:700px;margin:50px auto;background:#2c2c2c;border-radius:20px;padding:30px 25px;box-shadow:0 15px 35px rgba(0,0,0,0.5);border-top:5px solid #0088cc;}
+h2{text-align:center;color:#0088cc;margin-bottom:25px;font-size:28px;}
+.row{display:flex;gap:15px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+.row .group{flex:1;display:flex;gap:10px;}
+label{display:block;margin-bottom:5px;font-weight:bold;color:#0088cc;}
+input, select{padding:12px;border-radius:10px;border:1px solid #555;font-size:15px;transition:0.3s;width:100%;background:#3c3c3c;color:white;}
+input::placeholder, select option{color:#ccc;}
+input:focus, select:focus{border-color:#0088cc;outline:none;box-shadow:0 0 8px rgba(0,136,204,0.5);}
+button{background:#0088cc;color:white;border:none;font-weight:bold;cursor:pointer;transition:0.3s;font-size:16px;border-radius:10px;padding:10px 15px;}
+button:hover{background:#006699;transform: translateY(-2px);}
+.result, #historyBox{margin-top:25px;padding:20px;background:#3a3a3a;border-radius:15px;display:none;animation:fadeIn 0.5s;border-left:5px solid #0088cc;color:white;max-height:400px;overflow:auto;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(-10px);}to{opacity:1; transform:translateY(0);}}
+.detail-item{margin:8px 0;font-size:15px;padding:10px;border-radius:10px;background:#2a2a2a;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.code{font-size:20px;font-weight:bold;color:#0088cc;}
+.signature{font-size:16px;font-weight:bold;color:#00ffff;}
+.copy-btn{background:#00aaff;margin-left:10px;transition:0.3s;border:none;padding:5px 10px;border-radius:10px;color:white;cursor:pointer;font-size:14px;}
+.copy-btn:hover{background:#0088cc;color:white;}
+
+/* دکمه تاریخچه */
+.history-btn{
+    background:#ffaa00 !important;
+    color:white;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    border-radius:10px;
+    font-size:15px;
+    padding:8px 10px;
+    cursor:pointer;
+    font-weight:bold;
+    border:none;
+    transition:none;
+}
+.history-btn:hover,
+.history-btn:active,
+.history-btn:focus{
+    background:#ffaa00 !important;
+    color:white !important;
+}
+.arrow{font-size:16px;transition:0.3s;}
+
+/* مدال هشدار */
+#alertModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;justify-content:center;align-items:center;}
+#alertModal .modal-content{background:#8B0000;padding:20px;border-radius:15px;max-width:400px;text-align:center;border-top:5px solid #FF4500;}
+#alertModal p{color:#fff;font-size:16px;margin-bottom:20px;font-weight:bold;}
+#alertModal button{padding:8px 12px;border-radius:10px;}
+#alertModal .cancel-btn{background:#555;color:white;}
+#alertModal .confirm-btn{background:#FF4500;color:white;}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>ثبت درخواست حواله</h2>
+
+<div class="row form-row">
+    <div class="group">
+        <input type="text" id="sender" placeholder="نام فرستنده">
+        <input type="text" id="senderFather" placeholder="نام پدر فرستنده">
+    </div>
+</div>
+
+<div class="row form-row">
+    <div class="group">
+        <input type="text" id="receiver" placeholder="نام گیرنده">
+        <input type="text" id="receiverFather" placeholder="نام پدر گیرنده">
+    </div>
+</div>
+
+<div class="row form-row">
+    <label style="width:100%;">ولایت و ولسوالی گیرنده</label>
+</div>
+
+<div class="row form-row">
+    <select id="receiverProvince"></select>
+    <select id="receiverDistrict"><option value="">انتخاب ولسوالی</option></select>
+</div>
+
+<input class="form-row" type="number" id="amount" placeholder="مقدار پول به افغانی">
+
+<div style="display:flex; gap:10px; margin-top:20px;">
+    <button onclick="submitForm()">ثبت درخواست حواله</button>
+    <button class="history-btn" id="historyBtn" onclick="toggleHistory()">
+        <span style="font-weight:bold; font-size:15px;">تاریخچه سفارش‌ها</span> <span class="arrow">▼</span>
+    </button>
+</div>
+
+<div class="result" id="resultBox">
+    <p id="successMessage" style="color:#4CAF50; font-weight:bold; margin-bottom:10px;">
+        سفارش شما ثبت شد و در حال بررسی می‌باشد. لطفاً فقط درخواست واقعی را ثبت کنید و از اطلاعات صحیح استفاده نمایید.
+    </p>
+    <div id="details"></div>
+    <p style="color:#ffaa00; margin-top:10px; font-weight:bold;">
+        لطفا قبل از ترک این صفحه با استفاده از دکمه زیر از جزیات درخواست حواله کپی بگیرید.
+    </p>
+    <button class="copy-btn" onclick="copyDetails()">کپی از جزئیات</button>
+    <button class="copy-btn" style="background:#e53935; margin-left:5px;" onclick="closeDetails()">بستن صفحه</button>
+</div>
+
+<div id="historyBox"></div>
+</div>
+
+<!-- مدال هشدار -->
+<div id="alertModal">
+  <div class="modal-content">
+    <p>هرگونه سوءاستفاده و استفاده غیرمجاز خلاف قانون و مقررات هردو کشور می‌باشد.</p>
+    <div style="display:flex; justify-content:center; gap:15px;">
+      <button class="cancel-btn" onclick="cancelAlert()">لغو ثبت حواله</button>
+      <button class="confirm-btn" onclick="confirmAlert()">تأیید درخواست حواله</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const provinces = ["تخار", "بلخ", "کابل", "کندز", "هرات", "کندهار"];
+const districts = {
+    "تخار":[{name:"ولسوالی فرضی 1", address:"تخار، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0701000001"},
+            {name:"ولسوالی فرضی 2", address:"تخار، ولسوالی فرضی 2، شماره شعبه 02، تلفن:0701000002"}],
+    "بلخ":[{name:"ولسوالی فرضی 1", address:"بلخ، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0702000001"}],
+    "کابل":[{name:"ولسوالی فرضی 1", address:"کابل، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0703000001"}],
+    "کندز":[{name:"ولسوالی فرضی 1", address:"کندز، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0704000001"}],
+    "هرات":[{name:"ولسوالی فرضی 1", address:"هرات، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0705000001"}],
+    "کندهار":[{name:"ولسوالی فرضی 1", address:"کندهار، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0706000001"}]
+};
+
+let receiverProvinceSelect = document.getElementById("receiverProvince");
+let receiverDistrictSelect = document.getElementById("receiverDistrict");
+let historyBox = document.getElementById("historyBox");
+let historyArrow = document.querySelector(".history-btn .arrow");
+let historyVisible = false;
+
+// پر کردن ولایت‌ها
+provinces.forEach(p => { let opt=document.createElement("option"); opt.value=p; opt.text=p; receiverProvinceSelect.appendChild(opt); });
+receiverProvinceSelect.value = "تخار";
+function fillDistricts(province){
+    receiverDistrictSelect.innerHTML = '<option value="">انتخاب ولسوالی</option>';
+    if(districts[province]) districts[province].forEach(d=>{let opt=document.createElement("option");opt.value=d.name;opt.text=d.name;receiverDistrictSelect.appendChild(opt);});
+}
+fillDistricts(receiverProvinceSelect.value);
+receiverProvinceSelect.addEventListener("change", function(){ fillDistricts(this.value); });
+
+// تاریخچه دائمی
+let allTransfers = JSON.parse(localStorage.getItem("allTransfers") || "[]");
+
+// هشدار پیش فرض مخفی باشد
+document.getElementById("alertModal").style.display = "none";
+
+function submitForm(){
+    let sender = document.getElementById("sender").value.trim();
+    let senderFather = document.getElementById("senderFather").value.trim();
+    let receiver = document.getElementById("receiver").value.trim();
+    let receiverFather = document.getElementById("receiverFather").value.trim();
+    let receiverProvince = document.getElementById("receiverProvince").value;
+    let receiverDistrictName = document.getElementById("receiverDistrict").value;
+    let amount = document.getElementById("amount").value.trim();
+
+    if(!sender || !senderFather || !receiver || !receiverFather || !receiverProvince || !receiverDistrictName || !amount){
+        alert("لطفاً تمام اطلاعات را تکمیل کنید"); return;
+    }
+
+    // مخفی کردن تاریخچه اگر باز باشد
+    if(historyVisible){
+        historyVisible = false;
+        historyBox.style.display = "none";
+        historyArrow.innerText = "▼";
+    }
+
+    // فقط در اینجا هشدار نمایش داده شود
+    document.getElementById("alertModal").style.display="flex";
+    if(navigator.vibrate) navigator.vibrate(200);
+    window.pendingTransfer = {sender,senderFather,receiver,receiverFather,receiverProvince,receiverDistrictName,amount};
+}
+
+function cancelAlert(){document.getElementById("alertModal").style.display="none"; window.pendingTransfer=null;}
+function confirmAlert(){document.getElementById("alertModal").style.display="none"; if(window.pendingTransfer){finalizeForm(window.pendingTransfer); window.pendingTransfer=null;}}
+
+function finalizeForm(data){
+    let trackingCode = Math.floor(1000 + Math.random()*9000);
+    let districtInfo = districts[data.receiverProvince].find(d=>d.name===data.receiverDistrictName);
+    let now = new Date();
+    let dateTime = now.toLocaleString();
+    let detailsHTML=`
+<div class="detail-item"><b>شماره حواله:</b> <span class="code">${trackingCode}</span></div>
+<div class="detail-item"><b>فرستنده:</b> ${data.sender} (${data.senderFather})</div>
+<div class="detail-item"><b>گیرنده:</b> ${data.receiver} (${data.receiverFather})</div>
+<div class="detail-item"><b>ولایت گیرنده:</b> ${data.receiverProvince}</div>
+<div class="detail-item"><b>ولسوالی گیرنده:</b> ${data.receiverDistrictName}</div>
+<div class="detail-item"><b>مبلغ:</b> ${data.amount} افغانی</div>
+<div class="detail-item"><b>آدرس دقیق:</b> ${districtInfo.address}</div>
+<div class="detail-item"><b>تاریخ و ساعت:</b> ${dateTime}</div>
+<div class="detail-item"><span class="signature">آریا پرداخت</span></div>`;
+    document.getElementById("details").innerHTML = detailsHTML;
+    document.getElementById("resultBox").style.display="block";
+    document.getElementById("successMessage").style.display="block";
+
+    document.querySelectorAll(".form-row").forEach(el=>el.style.display="none");
+    document.getElementById("historyBtn").style.display = "none";
+    document.querySelector("button[onclick='submitForm()']").style.display = "none";
+
+    // اضافه کردن جدیدترین سفارش در ابتدای لیست
+    allTransfers.unshift({...data, code:trackingCode, dateTime});
+    localStorage.setItem("allTransfers", JSON.stringify(allTransfers));
+}
+
+function closeDetails(){
+    document.getElementById("resultBox").style.display="none";
+    document.querySelectorAll(".form-row").forEach(el=>el.style.display="flex");
+    document.getElementById("historyBtn").style.display = "inline-flex";
+    document.querySelector("button[onclick='submitForm()']").style.display = "inline-block";
+}
+
+function copyDetails(){
+    let text = document.getElementById("details").innerText;
+    navigator.clipboard.writeText(text); alert("جزئیات با موفقیت کپی شد");
+}
+
+function toggleHistory(){
+    historyVisible = !historyVisible;
+    historyArrow.innerText = historyVisible ? "▲" : "▼";
+
+    if(!historyVisible){historyBox.style.display="none"; return;}
+
+    if(allTransfers.length===0){
+        historyBox.innerHTML="<p style='color:#ccc;'>هیچ حواله ثبت نشده است.</p>";
+    } else {
+        let html=allTransfers.map((t,index)=>`<div class="detail-item">
+<div><b>شماره حواله:</b> ${t.code}, <b>فرستنده:</b> ${t.sender} (${t.senderFather}), <b>گیرنده:</b> ${t.receiver} (${t.receiverFather}), <b>ولایت/ولسوالی:</b> ${t.receiverProvince} / ${t.receiverDistrictName}, <b>مبلغ:</b> ${t.amount} افغانی, <b>تاریخ و ساعت:</b> ${t.dateTime}, <span class="signature">آریا پرداخت</span></div>
+<button class="copy-btn" onclick="copyHistory(${index})">کپی</button>
+</div>`).join("");
+        historyBox.innerHTML=html; 
+        historyBox.style.display="block";
+        historyBox.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+}
+
+function copyHistory(index){
+    let t=allTransfers[index];
+    let text=`شماره حواله: ${t.code}\nفرستنده: ${t.sender} (${t.senderFather})\nگیرنده: ${t.receiver} (${t.receiverFather})\nولایت/ولسوالی: ${t.receiverProvince} / ${t.receiverDistrictName}\nمبلغ: ${t.amount} افغانی\nآدرس دقیق: ${districts[t.receiverProvince].find(d=>d.name===t.receiverDistrictName).address}\nتاریخ و ساعت: ${t.dateTime}\nآریا پرداخت`;
+    navigator.clipboard.writeText(text); alert("جزئیات سفارش با موفقیت کپی شد");
+}
+</script>
+</body>
+</html>
