@@ -1,4 +1,4 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -56,6 +56,13 @@ button:hover{background:#006699;transform: translateY(-2px);}
 #alertModal button{padding:8px 12px;border-radius:10px;}
 #alertModal .cancel-btn{background:#555;color:white;}
 #alertModal .confirm-btn{background:#FF4500;color:white;}
+
+/* صفحه پرداخت */
+#paymentPage{display:none; padding:20px; max-width:600px; margin:30px auto; background:#2c2c2c; border-radius:20px;}
+#paymentPage h2{color:#00d4ff; text-align:center;}
+#paymentPage p{font-weight:bold;}
+#confirmPaymentBtn{margin-top:10px; border:none; padding:10px 15px; border-radius:10px; cursor:pointer;}
+#confirmPaymentBtn:disabled{background:#555; cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -82,14 +89,27 @@ button:hover{background:#006699;transform: translateY(-2px);}
 </div>
 
 <div class="row form-row">
-    <select id="receiverProvince"></select>
-    <select id="receiverDistrict"><option value="">انتخاب ولسوالی</option></select>
+    <select id="receiverProvince">
+        <option value="تخار">تخار</option>
+        <option value="بلخ" disabled>بلخ (بزودی فعال می‌گردد)</option>
+        <option value="کابل" disabled>کابل (بزودی فعال می‌گردد)</option>
+        <option value="کندز" disabled>کندز (بزودی فعال می‌گردد)</option>
+        <option value="هرات" disabled>هرات (بزودی فعال می‌گردد)</option>
+        <option value="کندهار" disabled>کندهار (بزودی فعال می‌گردد)</option>
+    </select>
+
+    <select id="receiverDistrict">
+        <option value="">انتخاب ولسوالی</option>
+    </select>
 </div>
 
-<input class="form-row" type="number" id="amount" placeholder="مقدار پول به افغانی">
+<div class="row form-row">
+    <input type="number" id="amount" placeholder="مقدار پول به افغانی">
+</div>
+<p id="tomanDisplay" style="color:#ffd700; font-weight:bold; margin-top:-10px;"></p>
 
 <div style="display:flex; gap:10px; margin-top:20px;">
-    <button onclick="submitForm()">ثبت درخواست حواله</button>
+    <button id="submitBtn" onclick="submitForm()">تأیید و ادامه</button>
     <button class="history-btn" id="historyBtn" onclick="toggleHistory()">
         <span style="font-weight:bold; font-size:15px;">تاریخچه سفارش‌ها</span> <span class="arrow">▼</span>
     </button>
@@ -116,21 +136,41 @@ button:hover{background:#006699;transform: translateY(-2px);}
     <p>هرگونه سوءاستفاده و استفاده غیرمجاز خلاف قانون و مقررات هردو کشور می‌باشد.</p>
     <div style="display:flex; justify-content:center; gap:15px;">
       <button class="cancel-btn" onclick="cancelAlert()">لغو ثبت حواله</button>
-      <button class="confirm-btn" onclick="confirmAlert()">تأیید درخواست حواله</button>
+      <button class="confirm-btn" onclick="openPaymentPage()">تأیید و ادامه</button>
     </div>
   </div>
 </div>
 
+<!-- صفحه پرداخت -->
+<div id="paymentPage">
+  <h2>مرحله پرداخت</h2>
+  <p style="color:#ffd700;">مبلغ قابل واریز: <span id="paymentToman"></span></p>
+  <p style="color:#ff6f61;">لطفاً مبلغ فوق را به شماره کارت زیر واریز کنید:</p>
+  <p style="color:#00ff99;">
+    شماره کارت: 6274 1212 0078 0559 <br> 
+    بانک: اقتصاد نوین <br> 
+    بنام: محمد... گلزار
+  </p>
+  <p style="color:#ffa500; font-weight:bold; margin-top:15px;">
+    این نوشته بعد از واریز با استفاده از دکمه زیر عکس فیش واریزی را انتخاب کنید
+  </p>
+  <label style="color:white; font-weight:bold;">آپلود فیش پرداخت:</label>
+  <input type="file" id="paymentReceipt" accept="image/*">
+  <button id="confirmPaymentBtn" disabled
+          style="background:#00d4ff; color:white; font-weight:bold; border-radius:10px; padding:10px 15px; margin-top:10px;">
+    تأیید پرداخت و ثبت حواله
+  </button>
+</div>
+
 <script>
-const provinces = ["تخار", "بلخ", "کابل", "کندز", "هرات", "کندهار"];
+const provinces = ["تخار"];
 const districts = {
-    "تخار":[{name:"ولسوالی فرضی 1", address:"تخار، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0701000001"},
-            {name:"ولسوالی فرضی 2", address:"تخار، ولسوالی فرضی 2، شماره شعبه 02، تلفن:0701000002"}],
-    "بلخ":[{name:"ولسوالی فرضی 1", address:"بلخ، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0702000001"}],
-    "کابل":[{name:"ولسوالی فرضی 1", address:"کابل، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0703000001"}],
-    "کندز":[{name:"ولسوالی فرضی 1", address:"کندز، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0704000001"}],
-    "هرات":[{name:"ولسوالی فرضی 1", address:"هرات، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0705000001"}],
-    "کندهار":[{name:"ولسوالی فرضی 1", address:"کندهار، ولسوالی فرضی 1، شماره شعبه 01، تلفن:0706000001"}]
+    "تخار":[
+        {name:"تالقان", address:"تخار، ولسوالی تالقان، شماره شعبه 01، تلفن:0701000001"},
+        {name:"رستاق", address:"تخار، ولسوالی رستاق، شماره شعبه 02، تلفن:0701000002"},
+        {name:"چاه‌آب", address:"تخار، ولسوالی چاه‌آب، شماره شعبه 03، تلفن:0701000003"},
+        {name:"دشت قعله", address:"تخار، ولسوالی دشت قعله، شماره شعبه 04، تلفن:0701000004"}
+    ]
 };
 
 let receiverProvinceSelect = document.getElementById("receiverProvince");
@@ -138,22 +178,30 @@ let receiverDistrictSelect = document.getElementById("receiverDistrict");
 let historyBox = document.getElementById("historyBox");
 let historyArrow = document.querySelector(".history-btn .arrow");
 let historyVisible = false;
-
-// پر کردن ولایت‌ها
-provinces.forEach(p => { let opt=document.createElement("option"); opt.value=p; opt.text=p; receiverProvinceSelect.appendChild(opt); });
-receiverProvinceSelect.value = "تخار";
-function fillDistricts(province){
-    receiverDistrictSelect.innerHTML = '<option value="">انتخاب ولسوالی</option>';
-    if(districts[province]) districts[province].forEach(d=>{let opt=document.createElement("option");opt.value=d.name;opt.text=d.name;receiverDistrictSelect.appendChild(opt);});
-}
-fillDistricts(receiverProvinceSelect.value);
-receiverProvinceSelect.addEventListener("change", function(){ fillDistricts(this.value); });
-
-// تاریخچه دائمی
 let allTransfers = JSON.parse(localStorage.getItem("allTransfers") || "[]");
 
-// هشدار پیش فرض مخفی باشد
-document.getElementById("alertModal").style.display = "none";
+// پر کردن ولسوالی‌ها
+function fillDistricts(province){
+    receiverDistrictSelect.innerHTML = '<option value="">انتخاب ولسوالی</option>';
+    if(districts[province]) districts[province].forEach(d=>{
+        let opt=document.createElement("option");
+        opt.value=d.name;
+        opt.text=d.name;
+        receiverDistrictSelect.appendChild(opt);
+    });
+}
+receiverProvinceSelect.value="تخار";
+fillDistricts("تخار");
+
+// جلوگیری از تغییر ولایت
+receiverProvinceSelect.addEventListener("change", function(){ this.value="تخار"; });
+
+// نمایش معادل تومان در صفحه اصلی
+document.getElementById("amount").addEventListener("input", function(){
+    let afghani = parseFloat(this.value) || 0;
+    let toman = afghani * (1000000/370);
+    document.getElementById("tomanDisplay").innerText = "معادل تقریبی: " + Math.round(toman).toLocaleString() + " تومان";
+});
 
 function submitForm(){
     let sender = document.getElementById("sender").value.trim();
@@ -168,21 +216,45 @@ function submitForm(){
         alert("لطفاً تمام اطلاعات را تکمیل کنید"); return;
     }
 
-    // مخفی کردن تاریخچه اگر باز باشد
     if(historyVisible){
-        historyVisible = false;
-        historyBox.style.display = "none";
-        historyArrow.innerText = "▼";
+        historyVisible=false;
+        historyBox.style.display="none";
+        historyArrow.innerText="▼";
     }
 
-    // فقط در اینجا هشدار نمایش داده شود
+    // نمایش هشدار فقط بعد از کلیک دکمه
     document.getElementById("alertModal").style.display="flex";
     if(navigator.vibrate) navigator.vibrate(200);
-    window.pendingTransfer = {sender,senderFather,receiver,receiverFather,receiverProvince,receiverDistrictName,amount};
+    window.pendingTransfer={sender,senderFather,receiver,receiverFather,receiverProvince,receiverDistrictName,amount};
 }
 
 function cancelAlert(){document.getElementById("alertModal").style.display="none"; window.pendingTransfer=null;}
-function confirmAlert(){document.getElementById("alertModal").style.display="none"; if(window.pendingTransfer){finalizeForm(window.pendingTransfer); window.pendingTransfer=null;}}
+
+function openPaymentPage(){
+    document.getElementById("alertModal").style.display="none";
+    const paymentPage = document.getElementById("paymentPage");
+    paymentPage.style.display="block";
+
+    const afghani = parseFloat(window.pendingTransfer.amount);
+    let toman = afghani * (1000000/370); 
+    document.getElementById("paymentToman").innerText = Math.round(toman).toLocaleString() + " تومان";
+
+    paymentPage.scrollIntoView({behavior:"smooth", block:"start"});
+    document.getElementById("submitBtn").style.display="none";
+}
+
+const receiptInput = document.getElementById("paymentReceipt");
+const confirmPaymentBtn = document.getElementById("confirmPaymentBtn");
+
+receiptInput.addEventListener("change", function(){
+    confirmPaymentBtn.disabled = this.files.length === 0;
+});
+
+confirmPaymentBtn.addEventListener("click", function(){
+    finalizeForm(window.pendingTransfer);
+    document.getElementById("paymentPage").style.display="none";
+    window.pendingTransfer = null;
+});
 
 function finalizeForm(data){
     let trackingCode = Math.floor(1000 + Math.random()*9000);
@@ -205,9 +277,8 @@ function finalizeForm(data){
 
     document.querySelectorAll(".form-row").forEach(el=>el.style.display="none");
     document.getElementById("historyBtn").style.display = "none";
-    document.querySelector("button[onclick='submitForm()']").style.display = "none";
+    document.getElementById("submitBtn").style.display = "none";
 
-    // اضافه کردن جدیدترین سفارش در ابتدای لیست
     allTransfers.unshift({...data, code:trackingCode, dateTime});
     localStorage.setItem("allTransfers", JSON.stringify(allTransfers));
 }
@@ -216,7 +287,7 @@ function closeDetails(){
     document.getElementById("resultBox").style.display="none";
     document.querySelectorAll(".form-row").forEach(el=>el.style.display="flex");
     document.getElementById("historyBtn").style.display = "inline-flex";
-    document.querySelector("button[onclick='submitForm()']").style.display = "inline-block";
+    document.getElementById("submitBtn").style.display = "inline-block";
 }
 
 function copyDetails(){
@@ -237,8 +308,7 @@ function toggleHistory(){
 <div><b>شماره حواله:</b> ${t.code}, <b>فرستنده:</b> ${t.sender} (${t.senderFather}), <b>گیرنده:</b> ${t.receiver} (${t.receiverFather}), <b>ولایت/ولسوالی:</b> ${t.receiverProvince} / ${t.receiverDistrictName}, <b>مبلغ:</b> ${t.amount} افغانی, <b>تاریخ و ساعت:</b> ${t.dateTime}, <span class="signature">آریا پرداخت</span></div>
 <button class="copy-btn" onclick="copyHistory(${index})">کپی</button>
 </div>`).join("");
-        historyBox.innerHTML=html; 
-        historyBox.style.display="block";
+        historyBox.innerHTML=html;historyBox.style.display="block";
         historyBox.scrollIntoView({behavior:"smooth", block:"start"});
     }
 }
